@@ -1,0 +1,582 @@
+---
+title: "CLUSTERING ANALYSIS"
+author: "DENNIS MULUMBI KYALO"
+date: "01-March-2022"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+geometry: left=1.3cm,right=1.3cm,top=1cm,bottom=2cm
+monofont: "Times New Roman"
+fontsize: 12pt
+header-includes:
+ \usepackage{booktabs}
+ \usepackage{sectsty}\sectionfont{\centering}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo    = FALSE,
+    message = FALSE,
+    warning = FALSE,
+    fig.pos = "center",
+    dpi     = 300)
+
+```
+
+\newpage
+# PART A
+1. Clustering is an unsupervised machine learning technique that encompasses a wide range of strategies for identifying subgroups, or clusters, in a data set. Clustering can be applied in the following areas:
+
+     - **Cancer Cells detection**\
+    Several cancer detection techniques make use of clustering algorithms. It separates the malignant from the non-malignant clusters.
+
+     - **Customer Segmentation**\
+    When conducting market research, Clustering is performed to categorize consumers according to their interests and preferences.
+
+     - **Search Engines**\
+        Search engines also use the clustering approach. Based on the proximity of the search query to the item in question, a search result is shown to the user. By grouping comparable data items together in a group that is far from the other different subjects, it accomplishes this objective. If the clustering method is of high quality, the accuracy of a query's result will be improved significantly.
+
+2. In order to implement the K-Means Clustering Algorithm, there is a common approach known as the elbow method that is used to identify the ideal value of K.
+
+    - First, we compute the k-means clustering algorithm for a variety of distinct values of the parameter k, for example, by altering the number of clusters (k) from 1 to 15.
+    
+    - We then compute the total within-cluster sum of squares(WCSS) for each k in the list.
+    
+    - Plot the WCSS curve based on the amount of clusters k present.
+    
+    - The number of clusters needed in a plot is typically determined by the position of the plot's bend (or "elbow").
+    
+3. **i. Hierarchical Clustering**
+
+   **Advantages**
+   
+    - The hierarchical structure provides valuable information. As a result, by examining the dendrogram, it is much simpler to determine the number of clusters to be used.
+    
+    - Easy to implement.
+
+   **Disadvantages**
+   
+    - Large datasets are not suited for this method because of its time complexity.
+    
+    - Highly sensitive to outliers.
+    
+    - The sequence in which the data is presented has an effect on the final outcome.
+\newpage
+   **ii. K-Means Clustering**
+   
+   **Advantages**
+   
+    - Easy to implement.
+    
+    - When dealing with a large number of variables, K-Means may be the most computationally effective method.
+
+   **Disadvantages**
+
+    - There is a lot of uncertainty on the number of clusters (K-Value) to be used.
+    
+    - Sensitive  to scale: rescaling your datasets will result in a significant change in findings.
+
+4. K-means clustering is the most commonly used clustering algorithm. It's a centroid-based algorithm and the simplest unsupervised learning algorithm.
+
+   Feature selection is used to remove features from your dataset that are unnecessary or redundant. While both feature selection and extraction are important, the primary distinction between the two is that feature selection preserves a subset of the original features. In contrast, feature extraction develops entirely new ones.
+
+   When faced with a huge set of correlated variables, principal components allow us to reduce the set down to a few representative variables that collectively account for the bulk of the variance in the original dataset.
+
+   PCA detects the highest eigenvectors of a covariance matrix and utilizes them to project the data onto a new subspace of equal or fewer dimensions.
+   Feature extraction using PCA, or Principle Component Analysis, is very popular. Applying PCA, the highest-valued eigenvectors of a covariance matrix are identified and used to project the data into a new subspace with an eigenvalue that is equal to or less than the original eigenvalues.
+
+   **Advantages of PCA**
+
+    - Removes Correlated Features.
+    
+    - Reduces the number of dimensions in the algorithm, which improves its performance: The algorithm's training time is greatly reduced with fewer dimensions.
+    
+    - Minimizes the chances of overfitting data: Overfitting occurs most often when a dataset has too many variables. As a result, by reducing the number of features, PCA helps in the correction of the overfitting problem.
+
+   **Disadvantages of PCA**
+
+    - Since PCA only works with numerical data, categorical characteristics need encoding.
+    
+    - The loss of information: It is true that Principal Components attempt to account for as much variation in a dataset as possible, but the number of Principal Components we use might overlook important information if we do not choose them appropriately.
+    
+    - It is necessary to normalize your data before performing  PCA; otherwise, PCA will be unable to identify the ideal Principal Components.
+
+
+```{r Libraries}
+
+library(tidyverse)
+library(skimr)
+library(readxl)
+library(broom)
+library(forcats)
+
+# Clustering libraries
+library(cluster)
+library(factoextra)
+
+library(tidyquant)
+library(recipes)
+library(ggrepel)
+library(ggbiplot)
+library(ggstatsplot)
+
+```
+
+\newpage
+# PART B
+## 1. INTRODUCTION (US Arrests Data)
+
+We begin by skimming through the dataset to understand its contexts.
+
+```{r US-Arrests}
+
+data("USArrests") 
+arrests_tbl <- USArrests
+skim_without_charts(arrests_tbl)
+
+```
+
+The USArrests dataset contains 50 samples and four variables. The variables include Murder, Assault, UrbanPop and Rape, as seen in the table above.
+
+### 1a. Hierachical Clustering (No feature scaling) 
+
+```{r Question 5a, out.height="100%", out.width="100%"}
+
+distance <- dist(x = arrests_tbl, method = "euclidean")
+hclust_obj <-
+  hclust(d = distance, method = "complete")
+
+plot(
+  hclust_obj,
+  cex  = 0.7,
+  hang = -2,
+  main = "Cluster Dendogram\nMethod: Complete linkage and Euclidean distance",
+  sub  = "Hierarchical clustering with no feature scaling",
+  xlab = "States",
+  ylab = "Height"
+)
+
+```
+
+The cluster dendrogram shown above depicts the clustered states obtained after performing hierarchical clustering with complete linkage and Euclidean distance on the input data. 
+In this figure, we can clearly see the numerous branches formed by the clustering approach. We performed this approach without scaling the dataset.
+
+
+### 1b. Cut the dendrogram
+We cut the dendrogram at a height that results in three distinct clusters.
+
+```{r Question 5b}
+
+hclust_cut_obj <- cutree(tree = hclust_obj, k = 3)
+hclust_cut_tbl <- as_tibble(x = hclust_cut_obj, rownames = c("State"))
+
+arrests_clust_tbl <- cbind(arrests_tbl, hclust_cut_tbl[, 2])
+table(arrests_clust_tbl$value) %>% as.data.frame(.) %>%
+  dplyr::rename(Cluster = Var1, Frequency = Freq) %>%
+  knitr::kable(caption  = "Cluster Frequency")
+
+```
+
+```{r Question 5b_2}
+
+arrests_clust_tbl <- cbind(arrests_tbl, hclust_cut_tbl[, 2])
+arrests_clust_tbl %>% as_tibble(rownames = "State") %>%
+  dplyr::rename(Cluster = value) %>%
+  select(State, Cluster) %>%
+  slice(1:10) %>%
+  knitr::kable(caption = "Clustered States")
+  
+
+```
+
+The three clusters obtained after trimming the dendrogram are shown in Table 3 above. Cluster 1 included sixteen states; Cluster 2 contained fourteen states; and Cluster 3 comprised twenty states.
+Table 4 displays a sample of the dataset's states and the distinct categories to which each state belongs.
+
+### 1c. Hierachical Clustering (After feature scaling) 
+We performed feature scaling on the variables with a standard deviation of one and then performed hierarchical clustering using complete linkage and Euclidean distance to cluster the states.
+
+```{r Question 5c}
+
+scaled_arrests_tbl <- scale(arrests_tbl)  
+scaled_arrests_tbl %>% 
+  as_tibble(rownames = "State") %>%
+  slice(1:10) %>% 
+  knitr::kable(caption = "Scaled dataset") 
+
+```
+
+
+
+```{r, out.height="100%", out.width="100%"}
+
+distance <- dist(x = scaled_arrests_tbl, method = "euclidean")
+hclust_obj <- hclust(d = distance, method = "complete")
+
+plot(hclust_obj,
+     cex  = 0.7,
+     hang = -2,
+     main = "Cluster Dendogram\nMethod: Complete linkage and Euclidean distance",
+     sub  = "Hierarchical clustering after feature scaling", 
+     xlab = "States", ylab = "Height"
+)
+
+```
+
+The cluster dendrogram above shows the clustered states with various branches.
+
+### 1d. Dendrogram Summary
+Based on the two dendrograms, the one with scaled variables tends to have more distinct branches and clusters than the one whose dataset was not scaled. 
+In my opinion, the variables should be scaled. If the scale of the variables is not the same, then the model might become biased towards the variables with a higher magnitude.
+
+\newpage
+## 2. INTRODUCTION (Market Campaign Data)
+We now have a glimpse of the market campaign dataset, which will allow us to gain insights from it.
+
+```{r Glimpse data}
+
+market_tbl <- read_csv(file = "data/marketing_campaign.csv")
+market_tbl %>% skimr::skim_without_charts()
+
+```
+
+The dataset contains 2209 samples and 18 variables. The variables are subdivided into three and fifteen character and numeric variables, respectively. The above tables clearly show a summary of the dataset.
+
+\newpage
+### 2a. Data Preprocessing
+#### Feature extraction & Education Encoding:
+We extracted two new features from the dataset.
+
+```{r Question 6a_1}
+
+market_wrangled_tbl <- market_tbl %>% 
+  
+  # Customer_Age
+  mutate(
+    Current_date   = dmy("01-07-2021"),
+    Customer_Age   = lubridate::year(Current_date) - Year_Birth,
+    
+    # MembershipDays (the length of membership in days)
+    Dt_Customer    = dmy(Dt_Customer),
+    MembershipDays = as.double(difftime(Current_date, Dt_Customer, units = "days"))
+    
+  ) %>% select(!Current_date) %>%
+  
+  mutate(
+    Education = case_when(
+      Education == "PhD" ~ "5",
+      Education == "Master" ~ "4",
+      Education == "Bachelor" ~ "3",
+      Education == "Associate" ~ "2",
+      Education == "HighSchool" ~ "1"
+    ) %>% as.double())
+  
+
+market_wrangled_tbl %>% 
+  select(ID, Year_Birth, Customer_Age, MembershipDays, Education) %>% 
+  slice(2155:2165) %>% 
+  knitr::kable(caption = "Extracted Features: Customer_Age & MembershipDays")
+
+```
+
+The above table shows the two new variables, Customer_Age and MembershipDays, and the encoded education variable. We encoded Highschool, Associate, Bachelor, Master and PhD as 1,2,3,4, and 5, respectively.
+
+#### Encode Marital_Status:
+The table below shows a sample of the encoded Marital_Status using dummy variables.
+
+```{r Question 6a_3}
+
+market_wrangled_obj_00 <- recipe(ID ~ ., data = market_wrangled_tbl) %>% 
+  step_string2factor("Marital_Status") %>% 
+  step_dummy("Marital_Status") 
+  
+
+market_wrangled_obj_00 %>% 
+  prep() %>% 
+  bake(market_wrangled_tbl) %>% 
+  select(!c(ID, Year_Birth, Dt_Customer)) %>% 
+  relocate(Education, .before = Marital_Status_Married) %>% 
+select(Marital_Status_Married,
+                           Marital_Status_Single, 
+                           Marital_Status_Together,
+                           Marital_Status_Widow) %>% 
+  slice(1:10) %>% 
+  
+  knitr::kable(caption = "Encoded Marital_Status")
+
+
+```
+
+#### Exlude Variables and Standardize:
+We'll now eliminate the variables that aren't needed and standardize the columns.
+
+```{r}
+set.seed(1)
+market_wrangled_obj <- recipe(ID ~ ., data = market_wrangled_tbl) %>% 
+  step_string2factor("Marital_Status") %>% 
+  step_dummy("Marital_Status") %>% 
+  step_normalize(all_numeric())
+  
+
+market_prep_tbl <- market_wrangled_obj %>% 
+  prep() %>% 
+  bake(market_wrangled_tbl) %>% 
+  select(!c(ID, Year_Birth, Dt_Customer)) %>% 
+  relocate(Education, .before = Marital_Status_Married)
+
+market_prep_tbl %>% slice(1:10) %>% 
+  select(1:7) %>% 
+  knitr::kable(caption = "Standardized Variables")
+
+```
+
+The above table shows a sample of the standardized columns after the ID, Year Birth, Dt Customer, and Marital Status variables have been excluded from the analysis.
+
+### 2b. Principal Component Analysis 
+In this study, we did Principal Component Analysis on a standardized dataset and used PC1 and PC2 to show the first 500 observations of the dataset.
+
+```{r Question 6b}
+set.seed(1)
+
+prcomp_obj <- market_prep_tbl %>%
+  
+  # Data is already scaled
+  prcomp(center = FALSE, scale. = FALSE)
+
+ggbiplot(prcomp_obj,
+         ellipse   = TRUE,
+         obs.scale = 1.5,
+         alpha     = 0.5)
+
+```
+
+The plot above depicts how much variance each primary component captures from the data set.  
+
+```{r, out.height="100%", out.width="100%"}
+set.seed(1)
+prcomp_var_pct_tbl <- prcomp_obj$sdev %>% 
+  enframe() %>% 
+  set_names(c("pc", "sd")) %>% 
+  mutate(pc_var_pct = (sd^2 / sum(sd^2)) * 100) 
+
+prcomp_var_pct_tbl %>%
+  ggplot(aes(pc, pc_var_pct)) +
+  geom_col(fill = "#2c3e50") +
+  theme_bw() +
+  labs(
+    title    = "PCA Explained Variation Plot",
+    subtitle = "percentage of variance that is attributed by each of the selected components.",
+    caption  = "PC1: 25.6% Explained Variation and PC2: 9.3% Explained Variation",
+    x        = "Principle Component",
+    y        = "Explained Variation (Percent)"
+  ) +
+  scale_y_continuous(
+    breaks = c(1, 5, 10, 15, 20, 25, 30),
+    labels = scales::percent_format(scale = 1, accuracy = 1)
+  ) 
+
+```
+
+According to the graph above, each chosen component contributes a different proportion of the total variation. PC1 had the highest explainability of 25.6%, followed by PC2, which had an explainability of 9.3%.  
+
+### 2c. Clustering 
+#### K-Means Clustering:
+
+The assessment of the appropriate number of clusters into which the data may be divided is a critical stage in any unsupervised technique. To calculate this ideal value of k, one of the most common approaches is to use the Elbow Method. In our case we computed the k-means clustering algorithm for a variety of distinct values of the parameter k. We selected fifteen cluster points and computed the within-cluster sum of squares (WCSS). 
+
+```{r Question 6c}
+set.seed(1)
+kmeans_mapper <- function(centers = 3) {
+  
+  market_prep_tbl %>% 
+    kmeans(centers = centers, nstart = 100)
+  
+}
+
+kmeans_mapped_tbl <- tibble(centers = 1:15) %>%
+  mutate(k_means = centers %>% map(kmeans_mapper)) %>%
+  mutate(glance  = k_means %>% map(glance))
+
+#### Question 6b Skree Plot ----  
+kmeans_mapped_tbl %>%
+  unnest(glance) %>%
+  select(centers, tot.withinss) %>%
+  
+  # Visualization
+  ggplot(aes(centers, tot.withinss)) +
+  geom_point(color = "#2c3e50", size = 4) +
+  geom_line(color  = "#2c3e50", size = 1) +
+  geom_vline(xintercept = 4, linetype = "dotdash", size = 1, color = "red") +
+  geom_vline(xintercept = 2, linetype = "dotdash", size = 1, color = "red") +
+  ggrepel::geom_label_repel(aes(label = centers), color = "#2c3e50") + 
+  
+  scale_x_continuous(n.breaks = 8) +
+  
+  # Formatting
+  theme_tq() +
+  xlab("Centers") +
+  ylab("WCSS") +
+  labs(
+    title    = "Elbow Graph",
+    subtitle = "Measures the distance each of the points are from the closest K-Means center",
+    caption  = "Conclusion: Based on the Elbow plot, we select 4 clusters to segment the dataset."
+  ) 
+
+
+```
+
+The elbow graph above shows the WCSS as a result of the centres. We then checked for the bends ("elbow") and discovered two bends, 2 and 4. Cluster two is not rational; therefore, we proceeded to choose four clusters.
+
+```{r}
+set.seed(1)
+market_prep_sliced_tbl <- market_prep_tbl %>% slice(1:500) 
+market_cluster <- kmeans(x = market_prep_sliced_tbl, centers = 4, nstart = 100) 
+clusplot(
+  x        = market_prep_sliced_tbl,
+  clus     = market_cluster$cluster,
+  lines    = 0,
+  color    = TRUE,
+  labels   = 2, 
+  main     = "PCA 2D Projection with K-Means Cluster Assignment",
+  xlab     = "PCA Component 1", 
+  ylab     = "PCA Component 2",
+  plotchar = FALSE,
+  shade    = TRUE
+  
+)
+
+```
+
+The above visualization shows the first 500 observations using PC1 and PC2. 
+
+
+
+```{r, out.height="100%", out.width="100%"}
+set.seed(1)
+kmeans_4_obj <- kmeans_mapped_tbl %>%
+  pull(k_means) %>%
+  pluck(4)
+
+
+kmeans_4_clusters_tbl <- kmeans_4_obj %>%
+  augment(market_tbl) %>%
+  select(ID, .cluster)
+
+
+prcomp_obj <- market_prep_tbl %>%
+  # Data is already scaled
+  prcomp(center = FALSE, scale. = FALSE)
+
+
+prcomp_result_tbl <- broom::augment(prcomp_obj, market_tbl) %>%
+  select(ID, .fittedPC1, .fittedPC2) %>%
+  set_names(c("ID", "PC1", "PC2"))
+
+
+pca_kmeans_4_results_tbl <- prcomp_result_tbl %>%
+  left_join(kmeans_4_clusters_tbl)
+
+# Function to make equal segments for visualization
+cluster = 1
+
+split_and_bind <- function(cluster = 1) {
+  pca_kmeans_4_results_tbl %>%
+    mutate(label_text = str_glue("{ID}")) %>%
+    filter(.cluster   == cluster) %>%
+    slice(1:20)
+}
+
+pca_kmeans_4_bind_tbl <- split_and_bind(cluster = 1) %>%
+  rbind(split_and_bind(cluster = 2),
+        split_and_bind(cluster = 3),
+        split_and_bind(cluster = 4))
+
+# mutate(label_text = str_glue("Customer: {bikeshop_name}
+#                                Cluster: {.cluster}")) %>%
+pca_kmeans_4_bind_tbl %>%
+  
+  ggplot(aes(PC1, PC2, color = .cluster)) +
+  
+  # Geometries
+  geom_point() +
+  geom_label_repel(aes(label = label_text), size = 3) +
+  
+  # Formatting
+  theme_tq() +
+  scale_color_manual(values = c("Black", "Red", "Green", "Purple")) +
+  labs(title    = "K-Means Segmentation: 2D Projection",
+       subtitle = "PCA 2D Projection with K-Means Cluster Assignment for Various User ID's",
+       caption  = "Conclusion: 4 Cluster segments identified") +
+  theme(legend.position = "none")
+
+```
+
+When it comes to viewing, understanding, and analyzing customer clusters, cluster mapping is a cutting-edge method. This information may assist the marketing department in identifying opportunities and making strategic choices based on the insights gained as a result of the process.
+The 2D projection plot shows the customer ID's mapped to their designated clusters.
+
+\newpage
+#### Cluster Summary:
+We now discuss the various clusters with respect to the Customer-Age and Education.
+
+```{r, out.height="1000px", out.width="100%"}
+set.seed(1)
+edu_age_market_tbl <- market_tbl %>% 
+  
+  # Customer_Age
+  mutate(
+    Current_date   = dmy("01-07-2021"),
+    Customer_Age   = lubridate::year(Current_date) - Year_Birth,
+    
+    # MembershipDays (the length of membership in days)
+    Dt_Customer    = dmy(Dt_Customer),
+    MembershipDays = as.double(difftime(Current_date, Dt_Customer, units = "days"))
+    
+  ) %>% select(!Current_date)
+
+edu_age_kmeans_tbl <- kmeans_4_obj %>% 
+  augment(edu_age_market_tbl) %>%  # market_wrangled_tbl %>% 
+  select(ID,Customer_Age,Education,.cluster)
+
+
+edu_age_kmeans_tbl %>% 
+  ggbetweenstats(x = .cluster,y = Customer_Age, pairwise.comparisons = TRUE,
+                 ggtheme        = theme_tq(),
+                 palette        = "default_aaas",
+                 package        = "ggsci", 
+                 xlab           = "Cluster"
+            )
+```
+
+The boxplot above encompassed in a violin plot shows the various mean age distributions of the customers. Cluster one had the highest number of customers followed by cluster four, three and two respectively. The results of the Games–Howell post hoc tests indicate statistically significant differences between all the groups. This is evidenced by the p-values being less than the 0.05 level of significance. 
+
+
+```{r, out.height="100%", out.width="100%"}
+
+edu_age_kmeans_tbl %>%
+  mutate(.cluster = fct_infreq(f = .cluster, ordered = TRUE)) %>%
+  ggplot(aes(Education, fill     = .cluster)) +
+  geom_histogram(stat = "count") +
+  facet_wrap( ~ .cluster, scales = "free_y") +
+  theme_tq() +
+  xlab("") +
+  labs(fill = "Cluster") +
+  theme(axis.text.x = element_text(
+    angle = 60,
+    hjust = 1,
+    face  = "bold"
+  )) +
+  scale_fill_tq()
+
+```
+
+The above histograms clearly show the distribution of the various education levels in various clusters. The Bachelor's degree holders were the majority, so they were evenly distributed in all the categories, with category one having the highest number of customers. Masters and PhD degree holders were concentrated in groups three and four. The Associates and high school holders were less prevalent in category two and four.
+
+\newpage
+
+# REFERENCES
+
+James, G., Witten, D., Hastie, T., & Tibshirani, R. (2013). An introduction to statistical learning (Vol. 112, p. 18). New York: springer.
+
+Kassambara, A. (2017). Practical guide to cluster analysis in R: Unsupervised machine learning (Vol. 1). Sthda.
+
+Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. Data mining and knowledge discovery, 2(3), 283-304.
